@@ -211,22 +211,28 @@ Matrix& Matrix::operator-=(const Matrix& other)
 	}
 	return *this;
 }
-void Matrix::uniform(const Matrix& A, double val)
+Matrix Matrix::uniform(const Matrix& A, double val)
 {
+	Matrix res(A.Width, A.Height);
 	double* current = A.values;
 	for (size_t i = 0; i < A.Height * A.Width; i++, current++)
 	{
-		*current = val;
+		*res.values = val;
 	}
+	return res;
 }
 
-void Matrix::sigmoid(Matrix& A)
+Matrix Matrix::sigmoid(const Matrix& A)
 {
+	Matrix res(A.Height, A.Width);
 	double* current = A.values;
+
 	for (size_t i = 0; i < A.Height * A.Width; i++, current++)
 	{
-		*current = 1 / (1 + exp(-*current));
+		*(res.values + i) = 1 / (1 + exp(-*current));
 	}
+
+	return res;
 }
 
 void Matrix::display()

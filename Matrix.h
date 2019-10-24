@@ -24,8 +24,8 @@ public:
 	Matrix& operator-=(const Matrix& other);
 
 	static Matrix dot(const Matrix& A, const Matrix& B); //produit matriciel
-	static void uniform(const Matrix& A, double val);
-	static void sigmoid(Matrix& A);
+	static Matrix uniform(const Matrix& A, double val);
+	static Matrix sigmoid(const Matrix& A);
 	void display(); //affiche les valeurs de la matrice de manière naturelle
 
 private:
