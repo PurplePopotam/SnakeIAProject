@@ -1,9 +1,10 @@
 #include "Matrix.h"
-#include <iostream> //pour display
-#include <cassert> // pour empêcher l'utilisateur de faire des calculs sans aucun sens
+#include <iostream> //to display
+#include <cassert> //to help user identify errors
 #include <cstdlib>
-#include <ctime> //pour le constructeur de matrice aléatoire
-#include <cmath> //pour exp
+#include <ctime> //for the random matrice constructor
+#include <cmath> //for the sigmoid function
+
 
 Matrix::Matrix()
 {
@@ -46,7 +47,6 @@ Matrix::Matrix(size_t a, size_t b, double inf, double sup)
 	Width = b;
 	values = new double[Height * Width];
 
-	srand(time(NULL));
 	for (size_t i = 0; i < Height; i++)
 	{
 		for (size_t j = 0; j < Width; j++)
@@ -70,6 +70,7 @@ double Matrix::at(size_t i, size_t j) const
 
 double& Matrix::at(size_t i, size_t j)
 {
+	assert(i < Height && j < Width);
 	return values[i + j * Height];
 }
 
@@ -213,11 +214,11 @@ Matrix& Matrix::operator-=(const Matrix& other)
 }
 Matrix Matrix::uniform(const Matrix& A, double val)
 {
-	Matrix res(A.Width, A.Height);
+	Matrix res(A.Height, A.Width);
 	double* current = A.values;
 	for (size_t i = 0; i < A.Height * A.Width; i++, current++)
 	{
-		*res.values = val;
+		*(res.values+i) = val;
 	}
 	return res;
 }

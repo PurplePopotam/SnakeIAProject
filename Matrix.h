@@ -2,31 +2,33 @@
 
 class Matrix
 {
+	friend class Genome;
+	friend class Network;
 public:
-	Matrix(); //constructeur par défaut
-	Matrix(size_t a, size_t b); //créer une matrice sans initialiser de valeurs
-	Matrix(size_t a, size_t b, double inf, double sup); //créer une matrice remplis de double aléatoire compris entre inf et sup
-	Matrix(size_t a, size_t b, double* tab); //créer une matrice à partir d'un tableau de double
-	Matrix(const Matrix& other); //constructeur par copie 
-	~Matrix(); //destructeur
+	Matrix(); 
+	Matrix(size_t a, size_t b); //creates a matrix with undefined values
+	Matrix(size_t a, size_t b, double inf, double sup); //creates a matrix filled with numbers between inf and sup
+	Matrix(size_t a, size_t b, double* tab); //creates a matrix from a double array
+	Matrix(const Matrix& other); 
+	~Matrix(); 
 
-	double at(size_t i, size_t j) const; //accès à une case de la matrice
-	double& at(size_t i, size_t j); //permet l'affectation 
+	double at(size_t i, size_t j) const; //access to an element of the matrix
+	double& at(size_t i, size_t j); 
 	double getHeight();
 	double getWidth();
-	void setValues(double* tab); //remplie la matrice à partir d'un tableau de valeur
+	void setValues(double* tab); //fill the matrix from a double array
 
 	bool operator==(const Matrix& other);
 	Matrix operator+(const Matrix& other) const;
 	Matrix& operator=(const Matrix& other);
-	Matrix operator*(const Matrix& other) const; //produit termes à termes
-	Matrix& operator+=(const Matrix& other);
+	Matrix operator*(const Matrix& other) const; //term to term (or hadamard) product
+	Matrix& operator+=(const Matrix& other); 
 	Matrix& operator-=(const Matrix& other);
 
-	static Matrix dot(const Matrix& A, const Matrix& B); //produit matriciel
+	static Matrix dot(const Matrix& A, const Matrix& B); //dot product
 	static Matrix uniform(const Matrix& A, double val);
 	static Matrix sigmoid(const Matrix& A);
-	void display(); //affiche les valeurs de la matrice de manière naturelle
+	void display(); //displays the matrix
 
 private:
 	size_t Height, Width;

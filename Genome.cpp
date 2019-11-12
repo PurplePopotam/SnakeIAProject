@@ -76,17 +76,19 @@ void Genome::Display()
 	std::cout << std::endl << std::endl;
 }
 
-void Genome::Mutate()
+Genome Genome::Mutate()
 {
 	srand(time(NULL));
+	Genome res(*this);
 	for (size_t j = 0; j < size; j++)
 	{
 		double rng = (double)(rand() / (RAND_MAX + 1.));
 		if (rng > 0.95)
 		{
-			*(genes + j) = (double)(rand() / (RAND_MAX + 1.));
+			*(res.genes + j) = (double)(rand() / (RAND_MAX + 1.));
 		}
 	}
+	return res;
 }
 
 Genome Genome::Mate(const Genome& A, const Genome& B)
@@ -110,6 +112,21 @@ Genome Genome::Mate(const Genome& A, const Genome& B)
 	return res;
 }
 
+std::vector<Snake> Genome::Parents(std::vector<Snake> generation)
+{
+	Snake father;
+	Snake mother;
+
+	for (size_t i = 0; i < generation.size(); i++)
+	{
+		if (father.fitness < generation[i].fitness) { mother = father; father = generation[i]; }
+	}
+	std::vector<Snake> parents(0);
+	parents.push_back(father);
+	parents.push_back(mother);
+	return parents;
+}
+
 void Genome::GenomeToWeights(Network& net)
 {
 	double* begin = genes;
@@ -123,7 +140,23 @@ void Genome::GenomeToWeights(Network& net)
 		}
 		begin += net.weights[pos].Height * net.weights[pos].Width;
 	}
-		
 }
 
 
+Snake Genome::Train(Zone& zone, size_t pop, size_t generations)
+{
+	std::vector<Snake> current_gen(0);
+	for (size_t i = 0; i < pop; i++) { current_gen.push_back(Snake(zone)); }
+	for (size_t j = 0; j < generations; j++)
+	{
+		for (size_t i = 0; i < pop; i++) { current_gen[i].Play(zone); }
+		std::vector<Snake> parents = Genome::Parents(current_gen);
+		Genome Father(parents[0].brain);
+		Genome Mother(parents[1].brain);
+		Genome Son = Genome::Mate(Father, Mother);
+		current_gen.clear();
+		for (size_t i = 0; i < pop; i++) { current_gen.push_back(Snake(zone)); }
+		for (size_t i = 0; i < pop; i++) { Genome clones = Son.Mutate(); clones.GenomeToWeights(current_gen[i].brain); }
+	}
+	return Genome::Parents(current_gen)[0];
+}

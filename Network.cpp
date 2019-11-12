@@ -1,12 +1,15 @@
 #include "Network.h"
 #include <cassert>
+#include <ctime>
+#include <cstdlib>
+
 
 Network::Network()
 {
 	std::vector<Matrix> weights;
 	std::vector<Matrix> bias;
 	std::vector<Matrix> activations;
-	size_t layer = 0;
+	layer = 0;
 }
 
 Network::Network(const Network& other)
@@ -49,6 +52,14 @@ std::vector<Matrix> Network::GetWeights()
 	return weights;
 }
 
+Network& Network::operator=(const Network& other)
+{
+	layer = other.layer;
+	weights = other.weights;
+	bias = other.bias;
+	activations = other.activations;
+	return *this;
+}
 
 void Network::DisplayWeights()
 {
@@ -64,4 +75,16 @@ void Network::DisplayActivations()
 	{
 		activations[i].display();
 	}
+}
+
+std::vector<Network> Network::Batch(size_t layer, size_t* sizes, size_t number)
+{
+	std::vector<Network> res;
+	for (size_t j = 0; j < number; j++)
+	{
+		Network nouv(layer, sizes);
+		res.push_back(nouv);
+	}
+
+	return res;
 }

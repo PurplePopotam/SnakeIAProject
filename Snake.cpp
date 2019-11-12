@@ -58,8 +58,8 @@ Zone::Zone(size_t _width, size_t _height)
 		zone[width * (height - 1) - 1] = '|';
 	}
 	
-	size_t x = 2 + (size_t)((width - 2) * rand() / (RAND_MAX + 1.0));
-	size_t y = 4 + (size_t)((height - 1) * rand() / (RAND_MAX + 1.0));
+	size_t x = 2 + (size_t)((width - 6) * rand() / (RAND_MAX + 1.0));
+	size_t y = 4 + (size_t)((height - 5) * rand() / (RAND_MAX + 1.0));
 	Fruit.push_back(x);
 	Fruit.push_back(y);
 	zone[x + y * width] = '%';
@@ -99,12 +99,17 @@ Snake::Snake()
 	
 }
 
+void Snake::PutBrainOf(const Snake& other)
+{
+	brain = other.brain;
+}
+
 Snake::Snake(Zone& zone)
 {
 	fitness = 0;
 	size = 3;
 	size_t dir = 1 + (size_t)(4 * rand() / (RAND_MAX + 1.0));
-	size_t _sizes[] = {21, 10, 3};
+	size_t _sizes[] = {24, 10, 3};
 
 	brain = Network(3, _sizes);
 	Matrix _surroundings(24, 1);
@@ -197,7 +202,7 @@ void Snake::Move(Zone& zone)
 	switch (direction)
 	{
 	case 'W':
-		body[body.size()-1].pop_back();
+		body[size - 1].pop_back();
 		x = body[0][0] - 1;
 		h.push_back(x);
 		y = body[0][1];
@@ -268,86 +273,173 @@ void Snake::Decide()
 
 void Snake::See(Zone& zone)
 {
-	double dist = zone.width; //returns 1 for no object in this direction, a normalized distance if there's anything (wall body fruit)
+	double dist; //returns 1 for no object in this direction, a normalized distance if there's anything (wall body fruit)
 
 	for (size_t i = 0; i < body[0][0]; i++) //West 
 	{
 		if (zone.zone[i + zone.width * body[0][1]] == '%')
 		{
-			dist = abs((double)(i - body[0][0]));
-			Surroundings.at(0, 0) = zone.width - dist / zone.width;
+			dist = sub(i, body[0][0]);
+			Surroundings.at(0, 0) = abs((zone.width - dist) / zone.width);
 		}
 		else if (zone.zone[i + zone.width * body[0][1]] == 'O')
 		{
-			dist = abs((double)(i - body[0][0]));
-			Surroundings.at(1, 0) = zone.width - dist / zone.width;
+			dist = sub(i, body[0][0]);
+			Surroundings.at(1, 0) = abs((zone.width - dist) / zone.width);
 		}
 		else if (zone.zone[i + zone.width * body[0][1]] == '|')
 		{
-			dist = abs((double)(i - body[0][0]));
-			Surroundings.at(2, 0) = zone.width - dist / zone.width;
+			dist = sub(i, body[0][0]);
+			Surroundings.at(2, 0) = abs((zone.width - dist) / zone.width);
 		}
 	}
 	
-	for (size_t i = zone.width - 1; i >= body[0][0]; i--) //East
+	for (size_t i = zone.width - 1; i > body[0][0]; i--) //East
 	{
 		if (zone.zone[i + zone.width * body[0][1]] == '%')
 		{
-			dist = abs((double)(i - body[0][0]));
-			Surroundings.at(3, 0) = zone.width - dist / zone.width;
+			dist = sub(i, body[0][0]);
+			Surroundings.at(3, 0) = abs((zone.width - dist) / zone.width);
 		}
 		else if (zone.zone[i + zone.width * body[0][1]] == 'O')
 		{
-			dist = abs((double)(i - body[0][0]));
-			Surroundings.at(4, 0) = zone.width - dist / zone.width;
+			dist = sub(i, body[0][0]);
+			Surroundings.at(4, 0) = abs((zone.width - dist) / zone.width);
 		}
 		else if (zone.zone[i + zone.width * body[0][1]] == '|')
 		{
-			dist = abs((double)(i - body[0][0]));
-			Surroundings.at(5, 0) = zone.width - dist / zone.width;
+			dist = sub(i, body[0][0]);
+			Surroundings.at(5, 0) = abs((zone.width - (double)dist) / zone.width);
 		}
 	}
-	/*
-	for (size_t i = 0; i < body[0][1]; i++) //North
-	{
-		if (zone.zone[body[0][0] + zone.width * i] == '%' && dist > abs((double)(i - body[0][0])))
-		{
-			dist = abs((double)(i - body[0][1]));
-			Surroundings.at(6, 0) = zone.height - dist / zone.height;
-		}
-		else if (zone.zone[body[0][0] + zone.width * i] == 'O' && dist > abs((double)(i - body[0][0])))
-		{
-			dist = abs((double)(i - body[0][1]));
-			Surroundings.at(7, 0) = zone.height - dist / zone.height;
-		}
-		else if (zone.zone[body[0][0] + zone.width * i] == '|' && dist > abs((double)(i - body[0][0])))
-		{
-			dist = abs((double)(i - body[0][1]));
-			Surroundings.at(8, 0) = zone.height - dist / zone.height;
-		}
-	}
-
-	for (size_t i = body[0][1]; i < zone.height; i++) //South
-	{
-		if (zone.zone[body[0][0] + zone.width * i] == '%' && dist > abs((double)(i - body[0][0])))
-		{
-			dist = abs((double)(i - body[0][1]));
-			Surroundings.at(9, 0) = zone.height - dist / zone.height;
-		}
-		else if (zone.zone[body[0][0] + zone.width * i] == 'O' && dist > abs((double)(i - body[0][0])))
-		{
-			dist = abs((double)(i - body[0][1]));
-			Surroundings.at(10, 0) = zone.height - dist / zone.height;
-		}
-		else if (zone.zone[body[0][0] + zone.width * i] == '|' && dist > abs((double)(i - body[0][0])))
-		{
-			dist = abs((double)(i - body[0][1]));
-			Surroundings.at(11, 0) = zone.height - dist / zone.height;
-		}
-	}
-
-	int b = body[0][1] - body[0][0];*/
 	
+	for (size_t i = 2; i < body[0][1]; i++) //North
+	{
+		if (zone.zone[body[0][0] + zone.width * i] == '%')
+		{
+			dist = sub(i, body[0][1]);
+			Surroundings.at(6, 0) = (zone.height - dist) / zone.height;
+		}
+		else if (zone.zone[body[0][0] + zone.width * i] == 'O')
+		{
+			dist = sub(i, body[0][1]);
+			Surroundings.at(7, 0) = (zone.height - dist) / zone.height;
+		}
+		else if (zone.zone[body[0][0] + zone.width * i] == '=')
+		{
+			dist = sub(i, body[0][1]);
+			Surroundings.at(8, 0) = (zone.height - dist) / zone.height;
+		}
+	}
+
+	for (size_t i = zone.height - 1; i > body[0][1]; i--) //South
+	{
+		if (zone.zone[body[0][0] + zone.width * i] == '%')
+		{
+			dist = sub(i, body[0][1]);
+			Surroundings.at(9, 0) = (zone.height - dist) / zone.height;
+		}
+		else if (zone.zone[body[0][0] + zone.width * i] == 'O')
+		{
+			dist = sub(i, body[0][1]);
+			Surroundings.at(10, 0) = (zone.height - dist) / zone.height;
+		}
+		else if (zone.zone[body[0][0] + zone.width * i] == '=')
+		{
+			dist = sub(i, body[0][1]);
+			Surroundings.at(11, 0) = (zone.height - dist) / zone.height;
+		}
+	}
+	
+	int b = body[0][1] + body[0][0];
+	dist = 0;
+	size_t i = 1;
+	while (dist == 0 || i < min(zone.width - body[0][0], body[0][1] - 3)) //North-east
+	{
+		if (zone.zone[body[0][0] + i + zone.width * (body[0][1] - i)] == '%')
+		{
+			dist = sub(body[0][1], i / zone.width) + sub(body[0][0], i % zone.width);
+			Surroundings.at(12, 0) = (zone.height + zone.width - dist) / (zone.height + zone.width);
+		}
+		else if (zone.zone[body[0][0] + i + zone.width * (body[0][1] - i)] == 'O')
+		{
+			dist = sub(body[0][1], i / zone.width) + sub(body[0][0], i % zone.width);
+			Surroundings.at(13, 0) = (zone.height + zone.width - dist) / (zone.height + zone.width);
+		}
+		else if (zone.zone[body[0][0] + i + zone.width * (body[0][1] - i)] == '=' || zone.zone[body[0][0] + i + zone.width * (body[0][1] - i)] == '|')
+		{
+			dist = sub(body[0][1], i / zone.width) + sub(body[0][0], i % zone.width);
+			Surroundings.at(14, 0) = (zone.height + zone.width - dist) / (zone.height + zone.width);
+		}
+		i++;
+	}
+	
+	dist = 0;
+	i = 1;
+	while (dist == 0 || i < min(body[0][0], zone.height - body[0][1])) //South-West
+	{
+		if (zone.zone[body[0][0] - i + zone.width * (body[0][1] + i)] == '%')
+		{
+			dist = sub(body[0][1], i / zone.width) + sub(body[0][0], i % zone.width);
+			Surroundings.at(15, 0) = (zone.height + zone.width - dist) / (zone.height + zone.width);
+		}
+		else if (zone.zone[body[0][0] - i + zone.width * (body[0][1] + i)] == 'O')
+		{
+			dist = sub(body[0][1], i / zone.width) + sub(body[0][0], i % zone.width);
+			Surroundings.at(16, 0) = (zone.height + zone.width - dist) / (zone.height + zone.width);
+		}
+		else if (zone.zone[body[0][0] - i + zone.width * (body[0][1] + i)] == '=' || zone.zone[body[0][0] - i + zone.width * (body[0][1] + i)] == '|')
+		{ 
+			dist = sub(body[0][1], i / zone.width) + sub(body[0][0], i % zone.width);
+			Surroundings.at(17, 0) = (zone.height + zone.width - dist) / (zone.height + zone.width);
+		}
+		i++;
+	}
+	
+	dist = 0;
+	i = 1;
+	while (dist == 0 || i < min(body[0][0], body[0][1] - 3)) //North-West
+	{
+		if (zone.zone[body[0][0] - i + zone.width * (body[0][1] - i)] == '%')
+		{
+			dist = sub(body[0][1], i / zone.width) + sub(body[0][0], i % zone.width);
+			Surroundings.at(18, 0) = (zone.height + zone.width - dist) / (zone.height + zone.width);
+		}
+		else if (zone.zone[body[0][0] - i + zone.width * (body[0][1] - i)] == 'O')
+		{
+			dist = sub(body[0][1], i / zone.width) + sub(body[0][0], i % zone.width);
+			Surroundings.at(19, 0) = (zone.height + zone.width - dist) / (zone.height + zone.width);
+		}
+		else if (zone.zone[body[0][0] - i + zone.width * (body[0][1] - i)] == '=' || zone.zone[body[0][0] - i + zone.width * (body[0][1] - i)] == '|')
+		{
+			dist = sub(body[0][1], i / zone.width) + sub(body[0][0], i % zone.width);
+			Surroundings.at(20, 0) = (zone.height + zone.width - dist) / (zone.height + zone.width);
+		}
+		i++;
+	}
+	
+	dist = 0;
+	i = 1;
+	while (dist == 0 || i < min(zone.width - body[0][0], zone.height - body[0][1])) //South-East
+	{
+		if (zone.zone[body[0][0] + i + zone.width * (body[0][1] + i)] == '%')
+		{
+			dist = sub(body[0][1], i / zone.width) + sub(body[0][0], i % zone.width);
+			Surroundings.at(21, 0) = (zone.height + zone.width - dist) / (zone.height + zone.width);
+		}
+		else if (zone.zone[body[0][0] + i + zone.width * (body[0][1] + i)] == 'O')
+		{
+			dist = sub(body[0][1], i / zone.width) + sub(body[0][0], i % zone.width);
+			Surroundings.at(22, 0) = (zone.height + zone.width - dist) / (zone.height + zone.width);
+		}
+		else if (zone.zone[body[0][0] + i + zone.width * (body[0][1] + i)] == '=' || zone.zone[body[0][0] + i + zone.width * (body[0][1] + i)] == '|')
+		{
+			dist = sub(body[0][1], i / zone.width) + sub(body[0][0], i % zone.width);
+			Surroundings.at(23, 0) = (zone.height + zone.width - dist) / (zone.height + zone.width);
+		}
+		i++;
+	}
+
 }
 
 void Snake::Check(Zone& zone)
@@ -441,4 +533,32 @@ void Snake::Grow(Zone& zone)
 void Snake::DisplaySurroundings()
 {
 	Surroundings.display();
+}
+
+void Snake::Play(Zone& zone)
+{
+	while (not(dead))
+	{
+		See(zone);
+		Decide();
+		Move(zone);
+		Grow(zone);
+		Check(zone);
+	}
+}
+void Snake::DisplayFitness()
+{
+	std::cout << fitness << std::endl;
+}
+void Snake::PlayToShow(Zone& zone)
+{
+	while (not(dead))
+	{
+		zone.Display();
+		See(zone);
+		Decide();
+		Move(zone);
+		Grow(zone);
+		Check(zone);
+	}
 }
