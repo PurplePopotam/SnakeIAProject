@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <ctime> //for the random matrice constructor
 #include <cmath> //for the sigmoid function
-
+#define _USE_MATH_DEFINES
 
 Matrix::Matrix()
 {
@@ -231,6 +231,20 @@ Matrix Matrix::sigmoid(const Matrix& A)
 	for (size_t i = 0; i < A.Height * A.Width; i++, current++)
 	{
 		*(res.values + i) = 1 / (1 + exp(-*current));
+	}
+
+	return res;
+}
+
+Matrix Matrix::arctan(const Matrix& A)
+{
+	Matrix res(A.Height, A.Width);
+	double* current = A.values;
+	double pi = atan(1) * 4;
+
+	for (size_t i = 0; i < A.Height * A.Width; i++, current++)
+	{
+		*(res.values + i) = atan(*(A.values + i)) * 2 / pi;
 	}
 
 	return res;

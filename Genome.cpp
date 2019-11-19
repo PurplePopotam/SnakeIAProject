@@ -83,10 +83,11 @@ Genome Genome::Mutate()
 	for (size_t j = 0; j < size; j++)
 	{
 		double rng = (double)(rand() / (RAND_MAX + 1.));
-		if (rng > 0.95)
+		if (rng > 0.995)
 		{
 			*(res.genes + j) = (double)(rand() / (RAND_MAX + 1.));
 		}
+
 	}
 	return res;
 }
@@ -142,21 +143,92 @@ void Genome::GenomeToWeights(Network& net)
 	}
 }
 
+Genome Genome::NetToGenome(const Network& net)
+{
+	Genome res;
+	res.size = 0;
+	for (size_t i = 0; i < net.layer - 1; i++)
+	{
+		res.size += net.weights[i].Height * net.weights[i].Width;
+	}
+
+	size_t begin = 0;
+	res.genes = new double[res.size];
+
+	for (size_t i = 0; i < net.layer - 1; i++)
+	{
+		for (size_t j = 0; j < net.weights[i].Width * net.weights[i].Height; j++)
+		{
+			*(res.genes + begin + j) = *(net.weights[i].values + j);
+		}
+		begin += net.weights[i].Width * net.weights[i].Height;
+	}
+
+	return res;
+}
+
+
+Snake Genome::Train(Zone& zone, size_t pop)
+{
+	std::vector<Snake> gen;
+	Snake snake(zone);
+
+	for (size_t j = 0; j < pop; j++)
+	{
+		gen.push_back(snake);
+		gen[j].Play(zone);
+		std::cout << "Generation initiale" << " Serpent numero : " << j << " Fitness : " << gen[j].fitness << std::endl;
+	}
+
+	std::vector<Snake> parents = Parents(gen);
+	Genome papagen(parents[0].brain);
+	Genome mamangen(parents[1].brain);
+	Genome filsgen = Mate(papagen, mamangen);
+	Snake fils(zone);
+	filsgen.GenomeToWeights(fils.brain);
+	return fils;
+}
 
 Snake Genome::Train(Zone& zone, size_t pop, size_t generations)
 {
-	std::vector<Snake> current_gen(0);
-	for (size_t i = 0; i < pop; i++) { current_gen.push_back(Snake(zone)); }
-	for (size_t j = 0; j < generations; j++)
+	
+	std::vector<std::vector<Snake>> gen;
+	std::vector<Snake> gen0;
+	std::vector<Snake> parents;
+	Genome papagen;
+	Genome mamangen;
+	Genome filsgen;
+	Snake first(zone);
+	first = Train(zone, pop);
+	for (size_t j = 0; j < pop; j++) { gen0.push_back(first); }
+	gen.push_back(gen0);
+
+	for (size_t i = 0; i < generations; i++)
 	{
-		for (size_t i = 0; i < pop; i++) { current_gen[i].Play(zone); }
-		std::vector<Snake> parents = Genome::Parents(current_gen);
-		Genome Father(parents[0].brain);
-		Genome Mother(parents[1].brain);
-		Genome Son = Genome::Mate(Father, Mother);
-		current_gen.clear();
-		for (size_t i = 0; i < pop; i++) { current_gen.push_back(Snake(zone)); }
-		for (size_t i = 0; i < pop; i++) { Genome clones = Son.Mutate(); clones.GenomeToWeights(current_gen[i].brain); }
+		gen0.clear();
+
+		for (size_t j = 0; j < pop; j++)
+		{
+			gen[i][j].Play(zone);
+			std::cout << "Generation : " << i << " Serpent numero : " << j << " Fitness : " << gen[i][j].fitness << std::endl;
+		}
+
+		parents = Parents(gen[i]);
+		papagen = NetToGenome(parents[0].brain);
+		mamangen = NetToGenome(parents[1].brain);
+		filsgen = Mate(papagen, mamangen);
+
+		for (size_t j = 0; j < pop; j++)
+		{
+			filsgen.Mutate().GenomeToWeights(first.brain);
+			gen0.push_back(first);
+		}
+
+		gen.push_back(gen0);
+		std::cout << "FITNESS :" << gen[i + 1][0].fitness << std::endl;
+		std::cout << "Generation numero " << i + 1 << " terminee." << std::endl;
+
 	}
-	return Genome::Parents(current_gen)[0];
+	
+	return Parents(gen[generations - 1])[0];
 }

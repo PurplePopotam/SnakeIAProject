@@ -34,10 +34,10 @@ Network::Network(size_t _layer, size_t* sizes)
 
 void Network::FeedForward(const Matrix& input)
 {
-	activations.push_back(Matrix::sigmoid(Matrix::dot(weights[0], input)));
+	activations.push_back(Matrix::arctan(Matrix::dot(weights[0], input)));
 	for (size_t i = 0; i < layer - 2; i++)
 	{
-		activations.push_back(Matrix::sigmoid(Matrix::dot(weights[i + 1], activations[i])));
+		activations.push_back(Matrix::arctan(Matrix::dot(weights[i + 1], activations[i])));
 	}
 	
 }

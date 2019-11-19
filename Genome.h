@@ -12,13 +12,16 @@ public:
 	Genome(const Genome& other);
 	Genome(size_t _size);
 	~Genome();
-	Genome(const Network& net); ////converts the weights of a network to a 1d genome
+	size_t GetSize() { return size; };
+	Genome(const Network& net); //converts the weights of a network to a 1d genome
+	static Genome NetToGenome(const Network& net); //same but not a constructor
 	Genome Mutate(); //changes randomly parts of the genome to maintain diversity within the population (~5% of the genome)
 	static std::vector<Snake> Parents(std::vector<Snake>); //selects 2 snakes with highest fitness value within a list of Snakes
 	static Genome Mate(const Genome& A, const Genome& B); //merges 2 genomes in one using uniform cross-over
 	Genome& operator =(const Genome& other); //to make the header more easy to use
 	void GenomeToWeights(Network& net); //implementes new weights into the network  
-	static Snake Train(Zone& zone, size_t pop, size_t generations); 
+	static Snake Train(Zone& zone, size_t pop); //trains one generation
+	static Snake Train(Zone& zone, size_t pop, size_t generations); //trains "generations" generation
 	void Display(); //display the genome
 
 private:

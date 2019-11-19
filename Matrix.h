@@ -28,6 +28,7 @@ public:
 	static Matrix dot(const Matrix& A, const Matrix& B); //dot product
 	static Matrix uniform(const Matrix& A, double val);
 	static Matrix sigmoid(const Matrix& A);
+	static Matrix arctan(const Matrix& A);
 	void display(); //displays the matrix
 
 private:
