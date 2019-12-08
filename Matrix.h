@@ -1,13 +1,14 @@
 #pragma once
-
+#include <chrono>
 class Matrix
 {
 	friend class Genome;
 	friend class Network;
+	friend class Snake;
 public:
 	Matrix(); 
 	Matrix(size_t a, size_t b); //creates a matrix with undefined values
-	Matrix(size_t a, size_t b, double inf, double sup); //creates a matrix filled with numbers between inf and sup
+	Matrix(size_t a, size_t b, double mean, double stddev); //creates a matrix filled with numbers following normal disrtibution of parameters mean and stddev
 	Matrix(size_t a, size_t b, double* tab); //creates a matrix from a double array
 	Matrix(const Matrix& other); 
 	~Matrix(); 
@@ -20,6 +21,7 @@ public:
 
 	bool operator==(const Matrix& other);
 	Matrix operator+(const Matrix& other) const;
+	Matrix operator-(const Matrix& other) const;
 	Matrix& operator=(const Matrix& other);
 	Matrix operator*(const Matrix& other) const; //term to term (or hadamard) product
 	Matrix& operator+=(const Matrix& other); 
@@ -34,5 +36,4 @@ public:
 private:
 	size_t Height, Width;
 	double* values;
-
 };

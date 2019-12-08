@@ -2,7 +2,7 @@
 #include <cassert>
 #include <ctime>
 #include <cstdlib>
-
+#include <chrono>
 
 Network::Network()
 {
@@ -27,19 +27,19 @@ Network::Network(size_t _layer, size_t* sizes)
 
 	for (size_t i = 0; i < layer - 1; i++, current++)
 	{
-		bias.push_back(Matrix::uniform(Matrix(*(current + 1), 1), 0)); //biais à zéro pour le moment
-		weights.push_back(Matrix(*(current + 1), *current, 0, 1)); //poids initialisés arbitrairement entre 0 et 1
+		bias.push_back(Matrix::uniform(Matrix(*(current + 1), 1), 0)); //bias set to 0
+		weights.push_back(Matrix(*(current + 1), *current, 0, 1)); //weights set between -1 and 1 following a normal distribution
 	}
 }
 
 void Network::FeedForward(const Matrix& input)
 {
-	activations.push_back(Matrix::arctan(Matrix::dot(weights[0], input)));
+	activations.clear();
+	activations.push_back(Matrix::sigmoid(Matrix::dot(weights[0], input) + bias[0]));
 	for (size_t i = 0; i < layer - 2; i++)
 	{
-		activations.push_back(Matrix::arctan(Matrix::dot(weights[i + 1], activations[i])));
+		activations.push_back(Matrix::sigmoid(Matrix::dot(weights[i + 1], activations[i])) + bias[i+1]);
 	}
-	
 }
 
 Matrix Network::GetOutput()

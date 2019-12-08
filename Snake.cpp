@@ -2,7 +2,11 @@
 #include <cstdlib> 
 #include <ctime>
 #include <iostream>
-
+#include "Windows.h"
+#include "stdio.h"
+#include <random>
+#include <thread>
+#include <chrono>
 
 
 Zone::Zone()
@@ -10,7 +14,6 @@ Zone::Zone()
 	width = 0;
 	height = 0;
 }
-
 
 Zone::Zone(const Zone& other)
 {
@@ -30,7 +33,6 @@ Zone& Zone::operator=(const Zone& other)
 	zone = other.zone;
 	return *this;
 }
-
 
 Zone::Zone(size_t _width, size_t _height)
 {
@@ -58,18 +60,12 @@ Zone::Zone(size_t _width, size_t _height)
 		zone[width * (height - 1) - 1] = '|';
 	}
 	
-	size_t x = 2 + (size_t)((width - 6) * rand() / (RAND_MAX + 1.0));
-	size_t y = 4 + (size_t)((height - 5) * rand() / (RAND_MAX + 1.0));
-
-	while (zone[x + y * width] == 'O' || zone[x + y * width] == '@')
-	{
-		x = 2 + (size_t)((width - 6) * rand() / (RAND_MAX + 1.0));
-		y = 4 + (size_t)((height - 5) * rand() / (RAND_MAX + 1.0));
-	}
-	
+	size_t x = 2 + (size_t)((width - 4) * rand() / (RAND_MAX + 1.0));
+	size_t y = 4 + (size_t)((height - 6) * rand() / (RAND_MAX + 1.0));
 	Fruit.push_back(x);
 	Fruit.push_back(y);
 	zone[x + y * width] = '%';
+	
 }
 
 void Zone::Clear()
@@ -102,24 +98,36 @@ void Zone::Display()
 	std::cout << zone << std::endl;
 }
 
+void Zone::SpawnFruit(size_t x, size_t y)
+{
+	zone[Fruit[0] + Fruit[1] * width] = ' ';
+	Fruit[0] = x;
+	Fruit[1] = y;
+	zone[Fruit[0] + Fruit[1] * width] = '%';
+}
+
 void Zone::SpawnFruit()
 {
 	zone[Fruit[0] + Fruit[1] * width] = ' ';
-	Fruit[0] = 2 + (size_t)((width - 4) * rand() / (RAND_MAX + 1.0));
-	Fruit[1] = 4 + (size_t)((height - 6) * rand() / (RAND_MAX + 1.0));
+
+	std::uniform_int_distribution<int> xdistribution(4, width - 5);
+	std::uniform_int_distribution<int> ydistribution(6, height - 5);
+
+	Fruit[0] = xdistribution(FruitGen);
+	Fruit[1] = ydistribution(FruitGen);
 
 	while (zone[Fruit[0] + Fruit[1] * width] == 'O' || zone[Fruit[0] + Fruit[1] * width] == '@')
 	{
-		Fruit[0] = 2 + (size_t)((width - 4) * rand() / (RAND_MAX + 1.0));
-		Fruit[1] = 4 + (size_t)((height - 6) * rand() / (RAND_MAX + 1.0));
+		Fruit[0] = xdistribution(FruitGen);
+		Fruit[1] = ydistribution(FruitGen);
 	}
+
 	zone[Fruit[0] + Fruit[1] * width] = '%';
 }
 
 Snake::Snake()
 {
-	fitness = 0;
-	size_t _sizes[] = { 24, 10, 3 };
+	size_t _sizes[] = { 24, 16, 3 };
 	brain = Network(3, _sizes);
 	std::vector<std::vector<size_t>> _body(0);
 	body = _body;
@@ -129,104 +137,10 @@ Snake::Snake()
 	Surroundings = Matrix::uniform(Surroundings, 0);
 }
 
-Snake::Snake(Zone& zone)
-{
-	fitness = 0;
-	size = 4;
-	size_t dir = 1 + (size_t)(4 * rand() / (RAND_MAX + 1.0));
-	size_t _sizes[] = {24, 10, 3};
-
-	brain = Network(3, _sizes);
-	Matrix _surroundings(24, 1);
-	Surroundings = _surroundings;
-	Surroundings = Matrix::uniform(Surroundings, 0);
-	
-	switch (dir)
-	{
-	case 1:
-		direction = 'W'; break;
-	case 2:
-		direction = 'N'; break;
-	case 3:
-		direction = 'E'; break;
-	case 4:
-		direction = 'S'; break;
-	};
-	
-	/*size_t x = 6 + (size_t)((zone.width - 10) * rand() / (RAND_MAX + 1.0));
-	size_t y = 8 + (size_t)((zone.height - 11) * rand() / (RAND_MAX + 1.0));*/
-	size_t x = 50;
-	size_t y = 12;
-	
-
-	std::vector<size_t> head; 
-	head.push_back(x);
-	head.push_back(y);
-	std::vector<std::vector<size_t>> _body(0);
-	body = _body;
-	body.push_back(head);
-	zone.zone[head[0] + head[1] * zone.width] = '@';
-	
-	std::vector<size_t> part(2, 0);
-
-	switch (direction)
-	{
-	case 'W':
-		part[0] = body[0][0] + 1;
-		part[1] = body[0][1];
-		body.push_back(part);
-		zone.zone[part[0] + part[1] * zone.width] = 'O';
-		part[0]++;
-		body.push_back(part);
-		zone.zone[part[0] + part[1] * zone.width] = 'O';
-		part[0]++;
-		body.push_back(part);
-		zone.zone[part[0] + part[1] * zone.width] = 'O'; break;
-
-	case 'N':
-		part[0] = body[0][0];
-		part[1] = body[0][1] + 1;
-		body.push_back(part);
-		zone.zone[part[0] + part[1] * zone.width] = 'O';
-		part[1]++;
-		body.push_back(part);
-		zone.zone[part[0] + part[1] * zone.width] = 'O';
-		part[1]++;
-		body.push_back(part);
-		zone.zone[part[0] + part[1] * zone.width] = 'O'; break;
-
-	case 'E':
-		part[0] = body[0][0] - 1;
-		part[1] = body[0][1];
-		body.push_back(part);
-		zone.zone[part[0] + part[1] * zone.width] = 'O';
-		part[0]--;
-		body.push_back(part);
-		zone.zone[part[0] + part[1] * zone.width] = 'O';
-		part[0]--;
-		body.push_back(part);
-		zone.zone[part[0] + part[1] * zone.width] = 'O'; break;
-
-	
-	case 'S':
-		part[0] = body[0][0];
-		part[1] = body[0][1] - 1;
-		body.push_back(part);
-		zone.zone[part[0] + part[1] * zone.width] = 'O';
-		part[1]--;
-		body.push_back(part);
-		zone.zone[part[0] + part[1] * zone.width] = 'O';
-		part[1]--;
-		body.push_back(part);
-		zone.zone[part[0] + part[1] * zone.width] = 'O'; break;
-	}
-
-}
-
 void Snake::Move(Zone& zone)
 {
 	movesleft--;
-	fitness++;
+	movesdone++;
 	std::vector<size_t> h(0);
 	size_t x = 0;
 	size_t y = 0;
@@ -278,12 +192,15 @@ void Snake::Decide(Zone& zone)
 	brain.FeedForward(Surroundings);
 	Matrix output(3, 1);
 	output = brain.GetOutput();
-	double max = 0;
+
+	double max = -100;
 	size_t decision = 0;
+
+	if (movesleft == 0) { dead = true; zone.Clear(); }
 
 	for (size_t i = 0; i < 3; i++)
 	{
-		if (max < output.at(i, 0))
+		if (max <= output.at(i, 0))
 		{
 			max = output.at(i, 0);
 			decision = i;
@@ -305,7 +222,7 @@ void Snake::Decide(Zone& zone)
 		else if (direction == 'E'){direction = 'S';}
 		else {direction = 'W';}
 	}
-	
+
 	switch (direction)
 	{
 	case 'W':
@@ -313,7 +230,6 @@ void Snake::Decide(Zone& zone)
 		{
 			dead = true;
 			zone.Clear();
-			zone.SpawnFruit();
 		}break;
 
 	case 'N':
@@ -321,7 +237,6 @@ void Snake::Decide(Zone& zone)
 		{
 			dead = true;
 			zone.Clear();
-			zone.SpawnFruit();
 		}break;
 
 	case 'E':
@@ -329,7 +244,6 @@ void Snake::Decide(Zone& zone)
 		{
 			dead = true;
 			zone.Clear();
-			zone.SpawnFruit();
 		}break;
 
 	case 'S':
@@ -337,32 +251,49 @@ void Snake::Decide(Zone& zone)
 		{
 			dead = true;
 			zone.Clear();
-			zone.SpawnFruit();
 		}break;
 	}
-
 }
 
-void Snake::See(Zone& zone)
+void Snake::See(Zone& zone) //returns the distance to anything if there's anything (wall/body/fruit)
 {
-	double dist; //returns 1 for no object in this direction, a normalized distance if there's anything (wall/body/fruit)
-
+	double dist = 0;
+	Surroundings = Matrix::uniform(Surroundings, 0);
+	
 	for (size_t i = 0; i < body[0][0]; i++) //West 
 	{
 		if (zone.zone[i + zone.width * body[0][1]] == '%')
 		{
 			dist = sub(i, body[0][0]);
-			Surroundings.at(0, 0) = zone.width - dist ;
+			switch (direction)
+			{
+			case 'N': Surroundings.at(18, 0) = 1; break;
+			case 'E': Surroundings.at(12, 0) = 1; break;
+			case 'S': Surroundings.at(6, 0) = 1; break;
+			case 'W':  Surroundings.at(0, 0) = 1; break;
+			}
 		}
 		else if (zone.zone[i + zone.width * body[0][1]] == 'O')
 		{
 			dist = sub(i, body[0][0]);
-			Surroundings.at(1, 0) = zone.width - dist;
+			switch (direction)
+			{
+			case 'N': Surroundings.at(19, 0) = 1 - double(dist) / zone.width; break;
+			case 'E': Surroundings.at(13, 0) = 1 - double(dist) / zone.width; break;
+			case 'S': Surroundings.at(7, 0) = 1 - double(dist) / zone.width; break;
+			case 'W': Surroundings.at(1, 0) = 1 - double(dist) / zone.width; break;
+			}
 		}
 		else if (zone.zone[i + zone.width * body[0][1]] == '|')
 		{
 			dist = sub(i, body[0][0]);
-			Surroundings.at(2, 0) = zone.width - dist;
+			switch (direction)
+			{
+			case 'N': Surroundings.at(20, 0) = 1 - double(dist) / zone.width; break;
+			case 'E': Surroundings.at(14, 0) = 1 - double(dist) / zone.width; break;
+			case 'S': Surroundings.at(8, 0) = 1 - double(dist) / zone.width; break;
+			case 'W': Surroundings.at(2, 0) = 1 - double(dist) / zone.width; break;
+			}
 		}
 	}
 	
@@ -371,17 +302,35 @@ void Snake::See(Zone& zone)
 		if (zone.zone[i + zone.width * body[0][1]] == '%')
 		{
 			dist = sub(i, body[0][0]);
-			Surroundings.at(3, 0) = zone.width - dist;
+			switch (direction)
+			{
+			case 'N': Surroundings.at(6, 0) = 1; break;
+			case 'E': Surroundings.at(0, 0) = 1; break;
+			case 'S': Surroundings.at(18, 0) = 1; break;
+			case 'W': Surroundings.at(12, 0) = 1; break;
+			}
 		}
 		else if (zone.zone[i + zone.width * body[0][1]] == 'O')
 		{
 			dist = sub(i, body[0][0]);
-			Surroundings.at(4, 0) = zone.width - dist;
+			switch (direction)
+			{
+			case 'N': Surroundings.at(7, 0) = 1 - double(dist) / zone.width; break;
+			case 'E': Surroundings.at(1, 0) = 1 - double(dist) / zone.width; break;
+			case 'S': Surroundings.at(19, 0) = 1 - double(dist) / zone.width; break;
+			case 'W': Surroundings.at(13, 0) = 1 - double(dist) / zone.width; break;
+			}
 		}
 		else if (zone.zone[i + zone.width * body[0][1]] == '|')
 		{
 			dist = sub(i, body[0][0]);
-			Surroundings.at(5, 0) = zone.width - (double)dist;
+			switch (direction)
+			{
+			case 'N': Surroundings.at(8, 0) = 1 - double(dist) / zone.width; break;
+			case 'E': Surroundings.at(2, 0) = 1 - double(dist) / zone.width; break;
+			case 'S': Surroundings.at(20, 0) = 1 - double(dist) / zone.width; break;
+			case 'W': Surroundings.at(14, 0) = 1 - double(dist) / zone.width; break;
+			}
 		}
 	}
 	
@@ -390,17 +339,35 @@ void Snake::See(Zone& zone)
 		if (zone.zone[body[0][0] + zone.width * i] == '%')
 		{
 			dist = sub(i, body[0][1]);
-			Surroundings.at(6, 0) = zone.height - dist;
+			switch (direction)
+			{
+			case 'N': Surroundings.at(0, 0) = 1; break;
+			case 'E': Surroundings.at(18, 0) = 1; break;
+			case 'S': Surroundings.at(12, 0) = 1; break;
+			case 'W': Surroundings.at(6, 0) = 1; break;
+			}
 		}
 		else if (zone.zone[body[0][0] + zone.width * i] == 'O')
 		{
 			dist = sub(i, body[0][1]);
-			Surroundings.at(7, 0) = zone.height - dist;
+			switch (direction)
+			{
+			case 'N': Surroundings.at(1, 0) = 1 - double(dist) / zone.height; break;
+			case 'E': Surroundings.at(19, 0) = 1 - double(dist) / zone.height; break;
+			case 'S': Surroundings.at(13, 0) = 1 - double(dist) / zone.height; break;
+			case 'W': Surroundings.at(7, 0) = 1 - double(dist) / zone.height; break;
+			}
 		}
 		else if (zone.zone[body[0][0] + zone.width * i] == '=')
 		{
 			dist = sub(i, body[0][1]);
-			Surroundings.at(8, 0) = zone.height - dist;
+			switch (direction)
+			{
+			case 'N': Surroundings.at(2, 0) = 1 - double(dist) / zone.height; break;
+			case 'E': Surroundings.at(20, 0) = 1 - double(dist) / zone.height; break;
+			case 'S': Surroundings.at(14, 0) = 1 - double(dist) / zone.height; break;
+			case 'W': Surroundings.at(8, 0) = 1 - double(dist) / zone.height; break;
+			}
 		}
 	}
 
@@ -409,39 +376,75 @@ void Snake::See(Zone& zone)
 		if (zone.zone[body[0][0] + zone.width * i] == '%')
 		{
 			dist = sub(i, body[0][1]);
-			Surroundings.at(9, 0) = zone.height - dist;
+			switch (direction)
+			{
+			case 'N': Surroundings.at(12, 0) = 1; break;
+			case 'E': Surroundings.at(6, 0) = 1; break;
+			case 'S': Surroundings.at(0, 0) = 1; break;
+			case 'W': Surroundings.at(18, 0) = 1; break;
+			}
 		}
 		else if (zone.zone[body[0][0] + zone.width * i] == 'O')
 		{
 			dist = sub(i, body[0][1]);
-			Surroundings.at(10, 0) = zone.height - dist;
+			switch (direction)
+			{
+			case 'N': Surroundings.at(13, 0) = 1 - double(dist) / zone.height; break;
+			case 'E': Surroundings.at(7, 0) = 1 - double(dist) / zone.height; break;
+			case 'S': Surroundings.at(1, 0) = 1 - double(dist) / zone.height; break;
+			case 'W': Surroundings.at(19, 0) = 1 - double(dist) / zone.height; break;
+			}
 		}
 		else if (zone.zone[body[0][0] + zone.width * i] == '=')
 		{
 			dist = sub(i, body[0][1]);
-			Surroundings.at(11, 0) = zone.height - dist;
+			switch (direction)
+			{
+			case 'N': Surroundings.at(14, 0) = 1 - double(dist) / zone.height; break;
+			case 'E': Surroundings.at(8, 0) = 1 - double(dist) / zone.height; break;
+			case 'S': Surroundings.at(2, 0) = 1 - double(dist) / zone.height; break;
+			case 'W': Surroundings.at(20, 0) = 1 - double(dist) / zone.height; break;
+			}
 		}
-	}
-	
-	int b = body[0][1] + body[0][0];
+	} 
+	/*
 	dist = 0;
 	size_t i = 1;
+	
 	while (dist == 0 || i < min(zone.width - body[0][0], body[0][1] - 3)) //North-east
 	{
 		if (zone.zone[body[0][0] + i + zone.width * (body[0][1] - i)] == '%')
 		{
-			dist = sub(body[0][1], i / zone.width) + sub(body[0][0], i % zone.width);
-			Surroundings.at(12, 0) = zone.height + zone.width - dist;
+			dist = sub(body[0][1], i) + sub(body[0][0], i);
+			switch (direction)
+			{
+			case 'N': Surroundings.at(3, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'E': Surroundings.at(21, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'S': Surroundings.at(15, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'W': Surroundings.at(9, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			}
 		}
 		else if (zone.zone[body[0][0] + i + zone.width * (body[0][1] - i)] == 'O')
 		{
-			dist = sub(body[0][1], i / zone.width) + sub(body[0][0], i % zone.width);
-			Surroundings.at(13, 0) = zone.height + zone.width - dist;
+			dist = sub(body[0][1], i) + sub(body[0][0], i);
+			switch (direction)
+			{
+			case 'N': Surroundings.at(4, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'E': Surroundings.at(22, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'S': Surroundings.at(16, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'W': Surroundings.at(10, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			}
 		}
 		else if (zone.zone[body[0][0] + i + zone.width * (body[0][1] - i)] == '=' || zone.zone[body[0][0] + i + zone.width * (body[0][1] - i)] == '|')
 		{
-			dist = sub(body[0][1], i / zone.width) + sub(body[0][0], i % zone.width);
-			Surroundings.at(14, 0) = zone.height + zone.width - dist;
+			dist = sub(body[0][1], i) + sub(body[0][0], i);
+			switch (direction)
+			{
+			case 'N': Surroundings.at(5, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'E': Surroundings.at(23, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'S': Surroundings.at(17, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'W': Surroundings.at(11, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			}
 		}
 		i++;
 	}
@@ -452,18 +455,36 @@ void Snake::See(Zone& zone)
 	{
 		if (zone.zone[body[0][0] - i + zone.width * (body[0][1] + i)] == '%')
 		{
-			dist = sub(body[0][1], i / zone.width) + sub(body[0][0], i % zone.width);
-			Surroundings.at(15, 0) = zone.height + zone.width - dist;
+			dist = sub(body[0][1], i) + sub(body[0][0], i);
+			switch (direction)
+			{
+			case 'N': Surroundings.at(15, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'E': Surroundings.at(9, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'S': Surroundings.at(3, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'W': Surroundings.at(21, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			}
 		}
 		else if (zone.zone[body[0][0] - i + zone.width * (body[0][1] + i)] == 'O')
 		{
-			dist = sub(body[0][1], i / zone.width) + sub(body[0][0], i % zone.width);
-			Surroundings.at(16, 0) = zone.height + zone.width - dist;
+			dist = sub(body[0][1], i) + sub(body[0][0], i);
+			switch (direction)
+			{
+			case 'N': Surroundings.at(16, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'E': Surroundings.at(10, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'S': Surroundings.at(4, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'W': Surroundings.at(22, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			}
 		}
 		else if (zone.zone[body[0][0] - i + zone.width * (body[0][1] + i)] == '=' || zone.zone[body[0][0] - i + zone.width * (body[0][1] + i)] == '|')
 		{ 
-			dist = sub(body[0][1], i / zone.width) + sub(body[0][0], i % zone.width);
-			Surroundings.at(17, 0) = zone.height + zone.width - dist;
+			dist = sub(body[0][1], i) + sub(body[0][0], i);
+			switch (direction)
+			{
+			case 'N': Surroundings.at(17, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'E': Surroundings.at(11, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'S': Surroundings.at(5, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'W': Surroundings.at(23, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			}
 		}
 		i++;
 	}
@@ -474,21 +495,40 @@ void Snake::See(Zone& zone)
 	{
 		if (zone.zone[body[0][0] - i + zone.width * (body[0][1] - i)] == '%')
 		{
-			dist = sub(body[0][1], i / zone.width) + sub(body[0][0], i % zone.width);
-			Surroundings.at(18, 0) = zone.height + zone.width - dist;
+			dist = sub(body[0][1], i) + sub(body[0][0], i);
+			switch (direction)
+			{
+			case 'N': Surroundings.at(21, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'E': Surroundings.at(15, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'S': Surroundings.at(9, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'W': Surroundings.at(3, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			}
 		}
 		else if (zone.zone[body[0][0] - i + zone.width * (body[0][1] - i)] == 'O')
 		{
-			dist = sub(body[0][1], i / zone.width) + sub(body[0][0], i % zone.width);
-			Surroundings.at(19, 0) = zone.height + zone.width - dist;
+			dist = sub(body[0][1], i) + sub(body[0][0], i);
+			switch (direction)
+			{
+			case 'N': Surroundings.at(22, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'E': Surroundings.at(16, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'S': Surroundings.at(10, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'W': Surroundings.at(4, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			}
 		}
 		else if (zone.zone[body[0][0] - i + zone.width * (body[0][1] - i)] == '=' || zone.zone[body[0][0] - i + zone.width * (body[0][1] - i)] == '|')
 		{
-			dist = sub(body[0][1], i / zone.width) + sub(body[0][0], i % zone.width);
-			Surroundings.at(20, 0) = zone.height + zone.width - dist;
+			dist = sub(body[0][1], i) + sub(body[0][0], i);
+			switch (direction)
+			{
+			case 'N': Surroundings.at(23, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'E': Surroundings.at(17, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'S': Surroundings.at(11, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'W': Surroundings.at(5, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			}
 		}
 		i++;
 	}
+
 	
 	dist = 0;
 	i = 1;
@@ -496,62 +536,39 @@ void Snake::See(Zone& zone)
 	{
 		if (zone.zone[body[0][0] + i + zone.width * (body[0][1] + i)] == '%')
 		{
-			dist = sub(body[0][1], i / zone.width) + sub(body[0][0], i % zone.width);
-			Surroundings.at(21, 0) = zone.height + zone.width - dist;
+			dist = sub(body[0][1], i) + sub(body[0][0], i);
+			switch (direction)
+			{
+			case 'N': Surroundings.at(9, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'E': Surroundings.at(3, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'S': Surroundings.at(21, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'W': Surroundings.at(15, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			}
 		}
 		else if (zone.zone[body[0][0] + i + zone.width * (body[0][1] + i)] == 'O')
 		{
-			dist = sub(body[0][1], i / zone.width) + sub(body[0][0], i % zone.width);
-			Surroundings.at(22, 0) = zone.height + zone.width - dist;
+			dist = sub(body[0][1], i) + sub(body[0][0], i);
+			switch (direction)
+			{
+			case 'N': Surroundings.at(10, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'E': Surroundings.at(4, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'S': Surroundings.at(22, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'W': Surroundings.at(16, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			}
 		}
 		else if (zone.zone[body[0][0] + i + zone.width * (body[0][1] + i)] == '=' || zone.zone[body[0][0] + i + zone.width * (body[0][1] + i)] == '|')
 		{
-			dist = sub(body[0][1], i / zone.width) + sub(body[0][0], i % zone.width);
-			Surroundings.at(23, 0) = zone.height + zone.width - dist;
+			dist = sub(body[0][1], i) + sub(body[0][0], i);
+			switch (direction)
+			{
+			case 'N': Surroundings.at(11, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'E': Surroundings.at(5, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'S': Surroundings.at(23, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			case 'W': Surroundings.at(17, 0) = 1 - double(dist) / (zone.height + zone.width); break;
+			}
 		}
 		i++;
-	}
-
-}
-
-void Snake::Check(Zone& zone)
-{
-	if (movesleft == 0) { dead = true; zone.Clear(); zone.SpawnFruit(); };
-
-	switch (direction)
-	{
-	case 'W':
-		if (zone.zone[body[0][0] - 1 + body[0][1] * zone.width] == '|' || zone.zone[body[0][0] - 1 + body[0][1] * zone.width] == '=' || zone.zone[body[0][0] - 1 + body[0][1] * zone.width] == 'O')
-		{
-			dead = true; 
-			zone.Clear();
-			zone.SpawnFruit();
-		}break;
-
-	case 'N':
-		if (zone.zone[body[0][0] + (body[0][1] - 1) * zone.width] == '|' || zone.zone[body[0][0] + (body[0][1] - 1) * zone.width] == '=' || zone.zone[body[0][0] + (body[0][1] - 1) * zone.width] == 'O')
-		{
-			dead = true;
-			zone.Clear();
-			zone.SpawnFruit();
-		}break;
-
-	case 'E':
-		if (zone.zone[body[0][0] + 1 + body[0][1] * zone.width] == '|' || zone.zone[body[0][0] + 1 + body[0][1] * zone.width] == '=' || zone.zone[body[0][0] + 1 + body[0][1] * zone.width] == 'O')
-		{
-			dead = true; 
-			zone.Clear();
-			zone.SpawnFruit();
-		}break;
-
-	case 'S':
-		if (zone.zone[body[0][0] + (body[0][1] + 1) * zone.width] == '|' || zone.zone[body[0][0] + (body[0][1] + 1) * zone.width] == '=' || zone.zone[body[0][0] + (body[0][1] + 1) * zone.width] == 'O')
-		{
-			dead = true; 
-			zone.Clear();
-			zone.SpawnFruit();
-		}break;
-	}
+	}*/
 }
 
 void Snake::Grow(Zone& zone)
@@ -563,52 +580,60 @@ void Snake::Grow(Zone& zone)
 		if (zone.zone[body[0][0] - 1 + body[0][1] * zone.width] == '%')
 		{
 			size++;
-			fitness += 100;
+			growcount++;
+			hasgrown = 1;
 			movesleft = 200;
 			zone.zone[body[0][0] + body[0][1] * zone.width] = 'O';
 			h.push_back(body[0][0] - 1);
 			h.push_back(body[0][1]);
 			body.insert(body.begin(), h);
 			zone.zone[body[0][0] + body[0][1] * zone.width] = '@';
+			zone.SpawnFruit();
 		}break;
 
 	case 'N':
 		if (zone.zone[body[0][0] + (body[0][1] - 1) * zone.width] == '%')
 		{
 			size++;
-			fitness +=100;
+			growcount++;
+			hasgrown = 1;
 			movesleft = 200;
 			zone.zone[body[0][0] + body[0][1] * zone.width] = 'O';
 			h.push_back(body[0][0]);
 			h.push_back((body[0][1] - 1));
 			body.insert(body.begin(), h);
 			zone.zone[body[0][0] + body[0][1] * zone.width] = '@';
+			zone.SpawnFruit();
 		}break;
 
 	case 'E':
 		if (zone.zone[body[0][0] + 1 + body[0][1] * zone.width] == '%')
 		{
 			size++;
-			fitness += 100;
+			growcount++;
+			hasgrown = 1;
 			movesleft = 200;
 			zone.zone[body[0][0] + body[0][1] * zone.width] = 'O';
 			h.push_back(body[0][0] + 1);
 			h.push_back(body[0][1]);
 			body.insert(body.begin(), h);
 			zone.zone[body[0][0] + body[0][1] * zone.width] = '@';
+			zone.SpawnFruit();
 		}break;
 
 	case 'S':
 		if (zone.zone[body[0][0] + (body[0][1] + 1) * zone.width] == '%')
 		{
 			size++;
-			fitness += 100;
+			growcount++;
+			hasgrown = 1;
 			movesleft = 200;
 			zone.zone[body[0][0] + body[0][1] * zone.width] = 'O';
 			h.push_back(body[0][0]);
 			h.push_back((body[0][1] + 1));
 			body.insert(body.begin(), h);
 			zone.zone[body[0][0] + body[0][1] * zone.width] = '@';
+			zone.SpawnFruit();
 		}break;
 
 	}
@@ -616,30 +641,214 @@ void Snake::Grow(Zone& zone)
 
 void Snake::Play(Zone& zone)
 {
+	/*
+	std::default_random_engine generator;
+	std::uniform_int_distribution<int> distribution(1,4);
+	size_t dir = distribution(generator);
+
+	switch (dir)
+	{
+	case 1:
+		direction = 'W'; break;
+	case 2:
+		direction = 'N'; break;
+	case 3:
+		direction = 'E'; break;
+	case 4:
+		direction = 'S'; break;
+	};
+	*/
+
+	size_t x = zone.width / 4;
+	size_t y = 5;
+	direction = 'E';
+
+	std::vector<size_t> head;
+	head.push_back(x);
+	head.push_back(y);
+	std::vector<std::vector<size_t>> _body(0);
+	body = _body;
+	body.push_back(head);
+	zone.zone[head[0] + head[1] * zone.width] = '@';
+
+	std::vector<size_t> part(2, 0);
+
+	switch (direction)
+	{
+	case 'W':
+		part[0] = body[0][0] + 1;
+		part[1] = body[0][1];
+		body.push_back(part);
+		zone.zone[part[0] + part[1] * zone.width] = 'O';
+		part[0]++;
+		body.push_back(part);
+		zone.zone[part[0] + part[1] * zone.width] = 'O';
+		part[0]++;
+		body.push_back(part);
+		zone.zone[part[0] + part[1] * zone.width] = 'O'; break;
+
+	case 'N':
+		part[0] = body[0][0];
+		part[1] = body[0][1] + 1;
+		body.push_back(part);
+		zone.zone[part[0] + part[1] * zone.width] = 'O';
+		part[1]++;
+		body.push_back(part);
+		zone.zone[part[0] + part[1] * zone.width] = 'O';
+		part[1]++;
+		body.push_back(part);
+		zone.zone[part[0] + part[1] * zone.width] = 'O'; break;
+
+	case 'E':
+		part[0] = body[0][0] - 1;
+		part[1] = body[0][1];
+		body.push_back(part);
+		zone.zone[part[0] + part[1] * zone.width] = 'O';
+		part[0]--;
+		body.push_back(part);
+		zone.zone[part[0] + part[1] * zone.width] = 'O';
+		part[0]--;
+		body.push_back(part);
+		zone.zone[part[0] + part[1] * zone.width] = 'O'; break;
+
+
+	case 'S':
+		part[0] = body[0][0];
+		part[1] = body[0][1] - 1;
+		body.push_back(part);
+		zone.zone[part[0] + part[1] * zone.width] = 'O';
+		part[1]--;
+		body.push_back(part);
+		zone.zone[part[0] + part[1] * zone.width] = 'O';
+		part[1]--;
+		body.push_back(part);
+		zone.zone[part[0] + part[1] * zone.width] = 'O'; break;
+	}
+	
 	while (not(dead))
 	{
 		See(zone);
-		Grow(zone);
 		Decide(zone);
 		if (not(dead))
 		{
 			Move(zone);
 		}
+		Grow(zone);
+
+		//fitness = movesdone * movesdone * 2^(growcount);
+		fitness = growcount;
 	}
 }
 
 void Snake::PlayToShow(Zone& zone)
 {
+	/*
+	std::default_random_engine generator;
+	std::uniform_int_distribution<int> distribution(1, 4);
+	size_t dir = distribution(generator);
+	size = 4;
+	
+	switch (dir)
+	{
+	case 1:
+		direction = 'W'; break;
+	case 2:
+		direction = 'N'; break;
+	case 3:
+		direction = 'E'; break;
+	case 4:
+		direction = 'S'; break;
+	};
+
+	/*size_t x = 6 + (size_t)((zone.width - 10) * rand() / (RAND_MAX + 1.0));
+	size_t y = 8 + (size_t)((zone.height - 11) * rand() / (RAND_MAX + 1.0));*/
+
+	size = 4;
+	size_t x = zone.width / 4;
+	size_t y = 5;
+	direction = 'E';
+
+	std::vector<size_t> head;
+	head.push_back(x);
+	head.push_back(y);
+	std::vector<std::vector<size_t>> _body(0);
+	body = _body;
+	body.push_back(head);
+	zone.zone[head[0] + head[1] * zone.width] = '@';
+
+	std::vector<size_t> part(2, 0);
+
+	switch (direction)
+	{
+	case 'W':
+		part[0] = body[0][0] + 1;
+		part[1] = body[0][1];
+		body.push_back(part);
+		zone.zone[part[0] + part[1] * zone.width] = 'O';
+		part[0]++;
+		body.push_back(part);
+		zone.zone[part[0] + part[1] * zone.width] = 'O';
+		part[0]++;
+		body.push_back(part);
+		zone.zone[part[0] + part[1] * zone.width] = 'O'; break;
+
+	case 'N':
+		part[0] = body[0][0];
+		part[1] = body[0][1] + 1;
+		body.push_back(part);
+		zone.zone[part[0] + part[1] * zone.width] = 'O';
+		part[1]++;
+		body.push_back(part);
+		zone.zone[part[0] + part[1] * zone.width] = 'O';
+		part[1]++;
+		body.push_back(part);
+		zone.zone[part[0] + part[1] * zone.width] = 'O'; break;
+
+	case 'E':
+		part[0] = body[0][0] - 1;
+		part[1] = body[0][1];
+		body.push_back(part);
+		zone.zone[part[0] + part[1] * zone.width] = 'O';
+		part[0]--;
+		body.push_back(part);
+		zone.zone[part[0] + part[1] * zone.width] = 'O';
+		part[0]--;
+		body.push_back(part);
+		zone.zone[part[0] + part[1] * zone.width] = 'O'; break;
+
+
+	case 'S':
+		part[0] = body[0][0];
+		part[1] = body[0][1] - 1;
+		body.push_back(part);
+		zone.zone[part[0] + part[1] * zone.width] = 'O';
+		part[1]--;
+		body.push_back(part);
+		zone.zone[part[0] + part[1] * zone.width] = 'O';
+		part[1]--;
+		body.push_back(part);
+		zone.zone[part[0] + part[1] * zone.width] = 'O'; break;
+	}
+
+	
+	HANDLE hconsole = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL);
+	SetConsoleActiveScreenBuffer(hconsole);
+	DWORD dwbyteswritten = 0;
+
 	while (not(dead))
 	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+		std::wstring zone_ = std::wstring(zone.zone.begin(), zone.zone.end());
+		const wchar_t* screen = zone_.c_str();
+		WriteConsoleOutputCharacter(hconsole, screen, zone.width * zone.height, { 0,0 }, &dwbyteswritten);
+
 		See(zone);
-		Grow(zone);
 		Decide(zone);
+		Grow(zone);
 		if (not(dead))
 		{
 			Move(zone);
 		}
-		zone.Display();
-
 	}
 }

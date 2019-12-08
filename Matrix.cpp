@@ -2,8 +2,10 @@
 #include <iostream> //to display
 #include <cassert> //to help user identify errors
 #include <cstdlib>
-#include <ctime> //for the random matrice constructor
+#include <random> //for the random matrix generator
 #include <cmath> //for the sigmoid function
+#include <chrono>
+
 #define _USE_MATH_DEFINES
 
 Matrix::Matrix()
@@ -41,18 +43,25 @@ Matrix::Matrix(size_t a, size_t b, double* tab)
 	}
 }
 
-Matrix::Matrix(size_t a, size_t b, double inf, double sup)
+Matrix::Matrix(size_t a, size_t b, double mean, double stddev)
 {
+	std::random_device generator;
+	std::normal_distribution<double> distribution(mean, stddev);
+
 	Height = a;
 	Width = b;
 	values = new double[Height * Width];
 
-	for (size_t i = 0; i < Height; i++)
+	for (size_t j = 0; j < Height * Width; j++)
 	{
-		for (size_t j = 0; j < Width; j++)
+		double number = distribution(generator);
+
+		while (number > mean + stddev || number < mean - stddev)
 		{
-			at(i, j) = (sup - inf) * (double)(rand() / (RAND_MAX + 1.)) + inf;
+			number = distribution(generator);
 		}
+
+		*(values + j) = number;
 	}
 
 }
@@ -124,7 +133,22 @@ Matrix Matrix::operator+(const Matrix& other) const
 	{
 		for (size_t j = 0; j < Height; j++)
 		{
-			res.at(i, j) = at(i, j) + other.at(i, j);
+			*(res.values + i + j * Width) = *(values + i + j * Width) + *(other.values + i + j * Width);
+		}
+	}
+	return res;
+}
+
+Matrix Matrix::operator-(const Matrix& other) const
+{
+	Matrix res(Height, Width);
+	assert(Height == other.Height && Width == other.Width);
+
+	for (size_t i = 0; i < Width; i++)
+	{
+		for (size_t j = 0; j < Height; j++)
+		{
+			res.at(i, j) = at(i, j) - other.at(i, j);
 		}
 	}
 	return res;
